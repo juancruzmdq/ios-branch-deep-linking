@@ -129,12 +129,11 @@
 // Helper method
 - (void)registerForPushNotifications:(UIApplication *)application {
     if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0) {
-        [application registerUserNotificationSettings:
-            [UIUserNotificationSettings settingsForTypes:
-                (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge) categories:nil]];
+        [application registerUserNotificationSettings:[UIUserNotificationSettings settingsForTypes:
+            (UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge)
+                categories:nil]];
         [application registerForRemoteNotifications];
-    }
-    else {
+    } else {
         #pragma clang diagnostic push
         #pragma clang diagnostic ignored "-Wdeprecated-declarations"
         [application registerForRemoteNotificationTypes:
