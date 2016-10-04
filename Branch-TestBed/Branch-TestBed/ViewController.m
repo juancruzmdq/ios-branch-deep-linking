@@ -11,6 +11,7 @@
 #import "LogOutputViewController.h"
 #import "BranchUniversalObject.h"
 #import "BranchLinkProperties.h"
+#import <EventKit/EventKit.h>
 
 NSString *cononicalIdentifier = @"item/12345";
 NSString *canonicalUrl = @"https://dev.branch.io/getting-started/deep-link-routing/guide/ios/";
@@ -29,7 +30,9 @@ NSString *test_key = @"test_key";
 NSString *type = @"some type";
 
 @interface ViewController ()
-
+    {
+    EKEventStore *eventStore;
+    }
 @property (weak, nonatomic) IBOutlet UITextField *branchLinkTextField;
 @property (weak, nonatomic) IBOutlet UILabel *pointsLabel;
 @property (weak, nonatomic) IBOutlet UIActivityIndicatorView *activityIndicator;
@@ -58,9 +61,24 @@ NSString *type = @"some type";
     _branchUniversalObject.price = 1000;
     _branchUniversalObject.currency = @"$";
     _branchUniversalObject.type = type;
-    [_branchUniversalObject addMetadataKey:@"deeplink_text" value:[NSString stringWithFormat:
-                                                                   @"This text was embedded as data in a Branch link with the following characteristics:\n\n  canonicalUrl: %@\n  title: %@\n  contentDescription: %@\n  imageUrl: %@\n", canonicalUrl, contentTitle, contentDescription, imageUrl]];
+    [_branchUniversalObject
+        addMetadataKey:@"deeplink_text"
+        value:[NSString stringWithFormat:
+       @"This text was embedded as data in a Branch link with the following characteristics:\n\n"
+       "    canonicalUrl: %@\n"
+       "    title: %@\n"
+       "    contentDescription: %@\n"
+       "    imageUrl: %@\n",
+       canonicalUrl, contentTitle, contentDescription, imageUrl]];
     [self refreshRewardPoints];
+    
+    //  Test reminders --
+    eventStore = [[EKEventStore alloc] init];
+    [eventStore requestAccessToEntityType:EKEntityTypeReminder completion:
+    ^ (BOOL granted, NSError * _Nullable error)
+        {
+        NSLog(@"Access granted: %d Error: %@.", granted, error);
+        }];
 }
 
 
@@ -188,7 +206,9 @@ NSString *type = @"some type";
     linkProperties.campaign = @"sharing campaign";
     [linkProperties addControlParam:@"$desktop_url" withValue: desktop_url];
     [linkProperties addControlParam:@"$ios_url" withValue: ios_url];
-    
+
+#if 0
+
     [self.branchUniversalObject showShareSheetWithLinkProperties:linkProperties andShareText:shareText fromViewController:self.parentViewController completion:^(NSString *activityType, BOOL completed) {
         if (completed) {
             NSLog(@"%@", [NSString stringWithFormat:@"Branch TestBed: Completed sharing to %@", activityType]);
@@ -196,6 +216,26 @@ NSString *type = @"some type";
             NSLog(@"%@", [NSString stringWithFormat:@"Branch TestBed: Sharing failed"]);
         }
     }];
+    
+#else
+
+    //  Test adding to a reminder --
+    
+    EKReminder *reminder = [EKReminder reminderWithEventStore:eventStore];
+    reminder.title = self.branchUniversalObject.title;
+    reminder.notes = self.branchUniversalObject.contentDescription;
+    reminder.URL = [NSURL URLWithString:self.branchUniversalObject.imageUrl];
+    
+    EKCalendar *defaultReminderList = [eventStore defaultCalendarForNewReminders];
+    [reminder setCalendar:defaultReminderList];
+
+    NSError *error = nil;
+    BOOL success = [eventStore saveReminder:reminder commit:YES error:&error];
+    if (!success) {
+        NSLog(@"Error saving reminder: %@", [error localizedDescription]);
+    }
+
+#endif
 }
 
 
